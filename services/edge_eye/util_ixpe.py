@@ -26,8 +26,8 @@ import cv2 as cv
 
 from logzero import loglevel, setup_logger, logger
 
-logger1 = setup_logger(name="lpx logger", logfile='./lpx-logger.log')
-logger2 = setup_logger(name="rpx logger", logfile='./rpx-logger.log')
+# logger1 = setup_logger(name="lpx logger", logfile='./lpx-logger.log')
+# logger2 = setup_logger(name="rpx logger", logfile='./rpx-logger.log')
 
 is_show_frame = True
 

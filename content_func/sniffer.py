@@ -61,7 +61,7 @@ class Sniffer():
         # TODO：聚合情境感知参数的时间序列，给出预估值/统计值
         runtime_desc = dict()
         for k, v in self.runtime_pkg_list.items():
-            runtime_desc[k] = sum(v) * 1.0 / len(v)
+            runtime_desc[k] = sum(v) * 1.0 / (len(v)+1e-5)
         
         # 获取场景稳定性
         if 'obj_n' in self.runtime_pkg_list.keys():

@@ -40,8 +40,15 @@ resolution_wh = {
 # 视频流sidechan
 video_q = mp.Queue(50)
 
+# detection profiler sidechan
+det_profiler_frame_q = mp.Queue(50)
+det_profiler_interval = 150
+det_profiler_continuous_frames = 5
+
 def sfg_get_next_init_task(
     job_uid=None,
+    pipeline_first_stage=None,
+    user_constraint=None,
     video_cap=None,
     video_conf=None,
     curr_cam_frame_id=None,
@@ -51,6 +58,9 @@ def sfg_get_next_init_task(
 
     global resolution_wh
     global video_q
+    global det_profiler_frame_q
+    global det_profiler_interval
+    global det_profiler_continuous_frames
 
     # 从视频流读取一帧，根据fps跳帧
     cam_fps = video_cap.get(cv2.CAP_PROP_FPS)
@@ -69,9 +79,36 @@ def sfg_get_next_init_task(
             "job_uid": job_uid,
             "image_type": "jpeg",
             "image_bytes": field_codec_utils.encode_image_tobytes(
-                cv2.resize(frame, (480, 360))
+                cv2.resize(frame, (480, 360)),
             )
         })
+
+        # detection_profiler sidechan
+        if cam_frame_id % det_profiler_interval < det_profiler_continuous_frames:
+            if cam_frame_id % det_profiler_interval == 0:
+                det_profiler_frame_q.put_nowait({
+                    "type": "res_profile_frame",
+                    "job_uid": job_uid,
+                    "image_type": "jpeg",
+                    "image": frame,
+                    "cam_frame_id": cam_frame_id,
+                    "det_scene": pipeline_first_stage,
+                    "cur_video_conf": video_conf,
+                    "user_constraint": user_constraint,
+                })
+            else:
+                det_profiler_frame_q.put_nowait({
+                    "type": "fps_profile_frames",
+                    "index": cam_frame_id % det_profiler_interval,
+                    "job_uid": job_uid,
+                    "image_type": "jpeg",
+                    "image": frame,
+                    "cam_frame_id": cam_frame_id,
+                    "det_scene": pipeline_first_stage,
+                    "cur_video_conf": video_conf,
+                    "user_constraint": user_constraint,
+                })
+        
 
         assert ret
 
@@ -334,6 +371,8 @@ class Job():
             # 1、根据video_conf，获取本次循环的输入数据（TODO：从缓存区读取）
             cam_frame_id, conf_frame_id, output_ctx = \
                 sfg_get_next_init_task(job_uid=self.get_job_uid(),
+                                       pipeline_first_stage=self.pipeline[0],
+                                       user_constraint=self.user_constraint,
                                        video_cap=cap,
                                        video_conf=self.video_conf,
                                        curr_cam_frame_id=curr_cam_frame_id,
@@ -456,7 +495,7 @@ def job_submit_job_cbk():
                            node_addr=para['node_addr'],
                            video_id=para['video_id'],
                            pipeline=para['pipeline'],
-                           user_constraint=['user_constraint'])
+                           user_constraint=para['user_constraint'])
     return flask.jsonify({"status": 0,
                           "msg": "submitted to manager from api: node/submit_job",
                           "job_uid": para["job_uid"]})
@@ -523,6 +562,12 @@ if __name__ == "__main__":
     video_serv_inter_port = 5101
     mp.Process(target=edge_sidechan.init_and_start_video_proc,
                args=(video_q, video_serv_inter_port,)).start()
+    time.sleep(1)
+
+    # 启动detection profiler sidechan
+    import detection_profiler_sidechan
+    mp.Process(target=detection_profiler_sidechan.detection_profiler_sidechan_loop,
+               args=(det_profiler_frame_q, det_profiler_continuous_frames)).start()
     time.sleep(1)
 
     # 线程轮询启动循环
