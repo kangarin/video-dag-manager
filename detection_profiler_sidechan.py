@@ -89,30 +89,30 @@ def detection_profiler_sidechan_loop(q, det_profiler_continuous_frames):
         pass
 
 
-if __name__ == "__main__":
-    cap = cv2.VideoCapture(0)
-    while True:
-        ret, frame = cap.read()
-        context1 = {"type": "res_profile_frame",
-                    "job_uid": "job_uid",
-                    "image_type": "jpeg",
-                    "image": frame,
-                    "cam_frame_id": 1,
-                    "det_scene": "face_detection",
-                    "cur_video_conf": {},
-                    "user_constraint": {}
-        }
+# if __name__ == "__main__":
+#     cap = cv2.VideoCapture(0)
+#     while True:
+#         ret, frame = cap.read()
+#         context1 = {"type": "res_profile_frame",
+#                     "job_uid": "job_uid",
+#                     "image_type": "jpeg",
+#                     "image": frame,
+#                     "cam_frame_id": 1,
+#                     "det_scene": "face_detection",
+#                     "cur_video_conf": {},
+#                     "user_constraint": {}
+#         }
         
-        context2 = {"type": "fps_profile_frames",
-                    "index": 1,
-                    "job_uid": "job_uid",
-                    "image_type": "jpeg",
-                    "image": frame,
-                    "cam_frame_id": 1,
-                    "det_scene": "car_detection",
-                    "cur_video_conf": {},
-                    "user_constraint": {}
-        }
-        send_to_detection_profiler_service(context2)
-        time.sleep(1)
-        pass
+#         context2 = {"type": "fps_profile_frames",
+#                     "index": 1,
+#                     "job_uid": "job_uid",
+#                     "image_type": "jpeg",
+#                     "image": frame,
+#                     "cam_frame_id": 1,
+#                     "det_scene": "car_detection",
+#                     "cur_video_conf": {},
+#                     "user_constraint": {}
+#         }
+#         send_to_detection_profiler_service(context2)
+#         time.sleep(1)
+#         pass

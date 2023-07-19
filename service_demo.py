@@ -35,6 +35,10 @@ services_args = {
         'weights': 'yolov5s.pt',
         # 'device': 'cuda:0'
         'device': 'cpu'
+    },
+    "ixpe_preprocess": {
+        "d_area" : [(440, 370), (790, 500)],
+        "bar_area" : [(80, 390), (1130, 440), (80, 440), (1130, 490)]
     }
 }
 
@@ -42,12 +46,18 @@ import field_codec_utils
 import services.headup_detect.face_detection
 import services.headup_detect.face_alignment_cnn
 import services.car_detection.car_detection
+import services.edge_eye_revised.video_preprocess
+import services.edge_eye_revised.super_resolution_pos_calculation
+import services.edge_eye_revised.edge_observe
 
 registered_services = {
     "face_detection": services.headup_detect.face_detection.FaceDetection(services_args["face_detection"]),
     "face_alignment": services.headup_detect.face_alignment_cnn.FaceAlignmentCNN(services_args["face_alignment"]),
     "car_detection": services.car_detection.car_detection.CarDetection(services_args["car_detection"]),
-    "helmet_detection": None
+    "helmet_detection": None,
+    "ixpe_preprocess": services.edge_eye_revised.video_preprocess.VideoPreprocess(services_args["ixpe_preprocess"]),
+    "ixpe_sr_and_pc": services.edge_eye_revised.super_resolution_pos_calculation.SuperResolutionPosCalculation(services_args["ixpe_preprocess"]),
+    "ixpe_edge_observe": services.edge_eye_revised.edge_observe.EdgeObserve(services_args["ixpe_preprocess"])
 }
 
 cluster_info = {
@@ -114,6 +124,42 @@ def cal(serv_name, input_ctx):
     output_ctx = dict()
 
     st_time = time.time()
+
+    if serv_name == "ixpe_preprocess":
+        assert "image" in input_ctx.keys()
+        # 解码
+        input_ctx["image"] = field_codec_utils.decode_image(input_ctx["image"])
+        # 执行
+        output_ctx = registered_services[serv_name](input_ctx)
+        
+        # 编码
+        if "image" in output_ctx:
+            output_ctx["image"] = field_codec_utils.encode_image(output_ctx["image"])
+        # time.sleep(1)
+
+    if serv_name == "ixpe_sr_and_pc":
+        assert "image" in input_ctx.keys()
+        # 解码
+        input_ctx["image"] = field_codec_utils.decode_image(input_ctx["image"])
+        # 执行
+        output_ctx = registered_services[serv_name](input_ctx)
+        
+        # 编码
+        if "image" in output_ctx:
+            output_ctx["image"] = field_codec_utils.encode_image(output_ctx["image"])
+        # time.sleep(1)
+
+    if serv_name == "ixpe_edge_observe":
+        assert "image" in input_ctx.keys()
+        # 解码
+        input_ctx["image"] = field_codec_utils.decode_image(input_ctx["image"])
+        # 执行
+        output_ctx = registered_services[serv_name](input_ctx)
+        
+        # 编码
+        if "image" in output_ctx:
+            output_ctx["image"] = field_codec_utils.encode_image(output_ctx["image"])
+        # time.sleep(1)
 
     if serv_name == "face_detection":
         # 解码
